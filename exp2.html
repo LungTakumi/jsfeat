@@ -12,6 +12,7 @@
         <link rel="stylesheet" href="css/bootstrap.css">
         <link rel="stylesheet" href="css/jsfeat.css">
 
+        
     </head>
     <body>
             <video id="webcam" width="640" height="480" style="display:none;"></video>
@@ -20,39 +21,32 @@
                 <div id="no_rtc" class="alert alert-error" style="display:none;"></div>
                 <div id="log" class="alert alert-info"></div>
             </div>
-
+            <canvas id="myCanvas"  style="border:1px solid #d3d3d3;">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-        <script type="text/javascript" src="js/jsfeat-min.js"></script>
-        <script type="text/javascript" src="js/compatibility.js"></script>
-        <script type="text/javascript" src="js/profiler.js"></script>
-        <script type="text/javascript" src="js/dat.gui.min.js"></script>
-	<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+        <script type="text/javascript" src="jsfeat-master/build/jsfeat-min.js"></script>
+        <script type="text/javascript" src="compatibility.js"></script>
+        <script type="text/javascript" src="profiler.js"></script>
+        <script type="text/javascript" src="dat.gui.min.js"></script>
         <script type="text/javascript">
-	
-		async function camInit(){
-			const constraints = {
-				audio: false,
-				video: true
-			};
-			try {
-				var video = document.getElementById('webcam');
-				const stream = await navigator.mediaDevices.getUserMedia(constraints);
-				const videoTracks = stream.getVideoTracks();
-				console.log('Got stream with constraints:', constraints);
-				console.log(`Using video device: ${videoTracks[0].label}`);
-				window.stream = stream;
-				video.srcObject = stream;
-				setTimeout(function() {
-					video.play();
-				}, 500);
-			} catch (e) {
-				$('#canvas').hide();
-				$('#log').hide();
-				$('#no_rtc').html('<h4>WebRTC not available.</h4>');
-				$('#no_rtc').show();
-				console.log(e);
-			}
-		}
+
+            var image = new Image();
+            image.src = "mp.jpg";
+            var new_corners,options;
+
+            window.onload = function(){    
+                console.log('deon');
+                var c = document.getElementById("myCanvas");
+                var ctxx = c.getContext("2d");
+                cols = image.width;
+                rows = image.height;
+                c.width = cols;
+                c.height = rows;
+                ctxx.drawImage(image, 0, 0, image.width, image.height);
+                $('#myCanvas').hide();
+                setTimeout(function(){ options.train_pattern(); }, 2000);
+                
+
+        };
 
         $(window).load(function() {
             "use strict";
@@ -84,13 +78,12 @@
                 };
 
                 video.addEventListener('loadeddata', readyListener);
-		
-				/*
+
                 compatibility.getUserMedia({video: true}, function(stream) {
                     try {
                         video.src = compatibility.URL.createObjectURL(stream);
                     } catch (error) {
-                        video.srcObj = stream;
+                        video.src = stream;
                     }
                     setTimeout(function() {
                             video.play();
@@ -101,10 +94,6 @@
                     $('#no_rtc').html('<h4>WebRTC not available.</h4>');
                     $('#no_rtc').show();
                 });
-				*/
-				camInit();
-				
-		
             } catch (error) {
                 $('#canvas').hide();
                 $('#log').hide();
@@ -130,7 +119,7 @@
                 return match_t;
             })();
 
-            var gui,options,ctx,canvasWidth,canvasHeight;
+            var gui,ctx,canvasWidth,canvasHeight;
             var img_u8, img_u8_smooth, screen_corners, num_corners, screen_descriptors;
             var pattern_corners, pattern_descriptors, pattern_preview;
             var matches, homo3x3, match_mask;
@@ -154,15 +143,23 @@
                     var lev_corners, lev_descr;
                     var corners_num=0;
 
-                    var sc0 = Math.min(max_pattern_size/img_u8.cols, max_pattern_size/img_u8.rows);
-                    new_width = (img_u8.cols*sc0)|0;
-                    new_height = (img_u8.rows*sc0)|0;
+                    var sc0 = Math.min(max_pattern_size/image.width, max_pattern_size/image.height);
+                    new_width = (image.width*sc0)|0;
+                    new_height = (image.height*sc0)|0;
 
-                    jsfeat.imgproc.resample(img_u8, lev0_img, new_width, new_height);
+                    var c = document.getElementById("myCanvas");
+                    var ctxx = c.getContext("2d");
+                    var imgData = ctxx.getImageData(0, 0, image.width, image.height);
+                    var imgg = new jsfeat.matrix_t(image.width, image.height, jsfeat.U8_t | jsfeat.C1_t);
+                    jsfeat.imgproc.grayscale(imgData.data, image.width, image.height, imgg);
+
+                    jsfeat.imgproc.resample(imgg, lev0_img, new_width, new_height);
 
                     // prepare preview
                     pattern_preview = new jsfeat.matrix_t(new_width>>1, new_height>>1, jsfeat.U8_t | jsfeat.C1_t);
                     jsfeat.imgproc.pyrdown(lev0_img, pattern_preview);
+
+                    console.log("preview ",pattern_preview);
 
                     for(lev=0; lev < num_train_levels; ++lev) {
                         pattern_corners[lev] = [];
@@ -183,7 +180,9 @@
 
                     jsfeat.imgproc.gaussian_blur(lev0_img, lev_img, options.blur_size|0); // this is more robust
                     corners_num = detect_keypoints(lev_img, lev_corners, max_per_level);
+                    console.log(corners_num);
                     jsfeat.orb.describe(lev_img, lev_corners, corners_num, lev_descr);
+                    console.log(lev_img);
 
                     console.log("train " + lev_img.cols + "x" + lev_img.rows + " points: " + corners_num);
 
@@ -300,13 +299,15 @@
                         stat.start("matching");
                         num_matches = match_pattern();
                         good_matches = find_transform(matches, num_matches);
-						console.log("homo3x3: " + homo3x3.data);
                         stat.stop("matching");
                     }
 
                     ctx.putImageData(imageData, 0, 0);
 
                     if(num_matches) {
+                        console.log("number of matches : ",num_matches, good_matches);
+                        if( good_matches >= num_matches * 30 / 100)
+                            console.log("matched");
                         render_matches(ctx, matches, num_matches);
                         if(good_matches > 8)
                             render_pattern_shape(ctx);
@@ -320,6 +321,7 @@
 
             function detect_keypoints(img, corners, max_allowed) {
                 // detect features
+                // returns the amount of detected corners
                 var count = jsfeat.yape06.detect(img, corners, 17);
 
                 // sort by score and reduce the count if needed
@@ -568,7 +570,7 @@
 
             $(window).unload(function() {
                 video.pause();
-                video.srcObj=null;
+                video.src=null;
             });
         });
         </script>
