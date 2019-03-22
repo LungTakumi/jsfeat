@@ -23,17 +23,43 @@
             </div>
             <canvas id="myCanvas"  style="border:1px solid #d3d3d3;">
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-        <script type="text/javascript" src="jsfeat-master/build/jsfeat-min.js"></script>
-        <script type="text/javascript" src="compatibility.js"></script>
-        <script type="text/javascript" src="profiler.js"></script>
-        <script type="text/javascript" src="dat.gui.min.js"></script>
+        <script type="text/javascript" src="js/jsfeat-min.js"></script>
+        <script type="text/javascript" src="js/compatibility.js"></script>
+        <script type="text/javascript" src="js/profiler.js"></script>
+        <script type="text/javascript" src="js/dat.gui.min.js"></script>
+		<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
         <script type="text/javascript">
-
+		
+		async function camInit(){
+			const constraints = {
+				audio: false,
+				video: true
+			};
+			try {
+				var video = document.getElementById('webcam');
+				const stream = await navigator.mediaDevices.getUserMedia(constraints);
+				const videoTracks = stream.getVideoTracks();
+				console.log('Got stream with constraints:', constraints);
+				console.log(`Using video device: ${videoTracks[0].label}`);
+				window.stream = stream;
+				video.srcObject = stream;
+				setTimeout(function() {
+					video.play();
+				}, 500);
+			} catch (e) {
+				$('#canvas').hide();
+				$('#log').hide();
+				$('#no_rtc').html('<h4>WebRTC not available.</h4>');
+				$('#no_rtc').show();
+				console.log(e);
+			}
+		}
+		
             var image = new Image();
-            image.src = "mp.jpg";
+            image.src = "marker/pinball.jpg";
             var new_corners,options;
 
-            window.onload = function(){    
+            function loadMarker(){    
                 console.log('deon');
                 var c = document.getElementById("myCanvas");
                 var ctxx = c.getContext("2d");
@@ -46,7 +72,7 @@
                 setTimeout(function(){ options.train_pattern(); }, 2000);
                 
 
-        };
+        }
 
         $(window).load(function() {
             "use strict";
@@ -79,21 +105,7 @@
 
                 video.addEventListener('loadeddata', readyListener);
 
-                compatibility.getUserMedia({video: true}, function(stream) {
-                    try {
-                        video.src = compatibility.URL.createObjectURL(stream);
-                    } catch (error) {
-                        video.src = stream;
-                    }
-                    setTimeout(function() {
-                            video.play();
-                        }, 500);
-                }, function (error) {
-                    $('#canvas').hide();
-                    $('#log').hide();
-                    $('#no_rtc').html('<h4>WebRTC not available.</h4>');
-                    $('#no_rtc').show();
-                });
+                camInit();
             } catch (error) {
                 $('#canvas').hide();
                 $('#log').hide();
@@ -246,6 +258,7 @@
                 match_mask = new jsfeat.matrix_t(500,1,jsfeat.U8C1_t);
 
                 options = new demo_opt();
+				loadMarker();
                 gui = new dat.GUI();
 
                 gui.add(options, "blur_size", 3, 9).step(1);
@@ -570,7 +583,7 @@
 
             $(window).unload(function() {
                 video.pause();
-                video.src=null;
+                video.srcObj=null;
             });
         });
         </script>
