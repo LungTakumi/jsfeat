@@ -22,13 +22,14 @@
             </div>
 
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+		<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
         <script type="text/javascript" src="js/jsfeat-min.js"></script>
         <script type="text/javascript" src="js/compatibility.js"></script>
         <script type="text/javascript" src="js/profiler.js"></script>
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
-	<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
         <script type="text/javascript">
-	
+		
+		/*
 		async function camInit(){
 			const constraints = {
 				audio: false,
@@ -53,7 +54,8 @@
 				console.log(e);
 			}
 		}
-
+		*/
+		
         $(window).load(function() {
             "use strict";
 
@@ -85,12 +87,14 @@
 
                 video.addEventListener('loadeddata', readyListener);
 		
-				/*
+				
                 compatibility.getUserMedia({video: true}, function(stream) {
+					
                     try {
                         video.src = compatibility.URL.createObjectURL(stream);
                     } catch (error) {
                         video.srcObj = stream;
+						
                     }
                     setTimeout(function() {
                             video.play();
@@ -101,8 +105,8 @@
                     $('#no_rtc').html('<h4>WebRTC not available.</h4>');
                     $('#no_rtc').show();
                 });
-				*/
-				camInit();
+				
+				//camInit();
 				
 		
             } catch (error) {
@@ -565,11 +569,12 @@
                     }
                 }
             }
-
+			
             $(window).unload(function() {
                 video.pause();
                 video.srcObj=null;
             });
+			
         });
         </script>
     </body>

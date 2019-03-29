@@ -36,17 +36,17 @@ var compatibility = (function() {
             return cancelAnimationFrame.call(window, id);
         },
 
-        getUserMedia = function(options, success, error) {
-            var getUserMedia =
-                window.navigator.getUserMedia ||
-                window.navigator.mozGetUserMedia ||
-                window.navigator.webkitGetUserMedia ||
-                window.navigator.msGetUserMedia ||
-                function(options, success, error) {
-                    error();
-                };
-
-            return getUserMedia.call(window.navigator, options, success, error);
+        getUserMedia = async function(options, success, error) {
+			try{
+				const stream = await navigator.mediaDevices.getUserMedia(options);
+				const videoTracks = stream.getVideoTracks();
+				console.log('Got stream.');
+				console.log(`Using video device: ${videoTracks[0].label}`);
+				window.stream = stream;
+				success(stream);
+			}catch(e){
+				error(e);
+			}
         },
 
         detectEndian = function() {

@@ -1,0 +1,82 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; overflow: hidden;}
+			#display {margin: 10px auto; width: 640px; height: 480px}
+			canvas {width: 640px; height: 480px}
+			iframe {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%; 
+				height: 100%; 
+				z-index: -1;
+			}
+		</style>
+	</head>
+	<body>
+	<iframe id="ARFrame" src="exp2.html"></iframe>
+	<div id="display"></div>
+		<script src="thirdparty/three.js"></script>
+		<script>
+			var width = 640;
+			var height = 480;
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 60, width/height, 0.1, 1000 );
+
+			var renderer = new THREE.WebGLRenderer({ alpha: true });
+			renderer.setSize( width, height );
+			document.getElementById("display").appendChild( renderer.domElement );
+			
+			var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+			scene.add( light );
+			
+			var geometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
+			var material = new THREE.MeshStandardMaterial();
+			var cube = new THREE.Mesh( geometry, material );
+			scene.add( cube );
+
+			camera.position.z = 0;
+			//camera.rotation.set(0,180,0);
+			//var camrot = JSON.stringify(camera.rotation);
+			//console.log("cam rot: " + camrot);
+
+			var animate = function () {
+				requestAnimationFrame( animate );
+
+				//cube.rotation.x += 0.01;
+				//cube.rotation.y += 0.01;
+
+				renderer.render( scene, camera );
+			};
+
+			animate();
+			
+			window.document.addEventListener('OnARFrameEvent', OnARFrameEvent, false);
+			function OnARFrameEvent(e) {
+				var obj = JSON.parse(e.detail);
+				//console.log("j Data: " + obj.Data);
+				
+				
+				var m = new THREE.Matrix4();
+				m.fromArray(obj.Data);
+				m.transpose();
+				//console.log("M: " + m.elements);
+				cube.position.set(m.elements[12], -m.elements[13], -m.elements[14]);
+				cube.setRotationFromMatrix(m);
+				//cube.rotation.x *= -1;
+				cube.rotation.y *= -1;
+				cube.rotation.z *= -1;
+				
+				var cpos = JSON.stringify(cube.position);
+				var crot = JSON.stringify(cube.rotation);
+				var cscale = JSON.stringify(cube.scale);
+				console.log("cpos: " + cpos);
+				console.log("crot: " + crot);
+				console.log("cscale: " + cscale);
+				
+			}
+		</script>
+	</body>
+</html>

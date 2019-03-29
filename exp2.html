@@ -11,7 +11,9 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Sans:regular,bold|Inconsolata|PT+Sans:400,700">
         <link rel="stylesheet" href="css/bootstrap.css">
         <link rel="stylesheet" href="css/jsfeat.css">
-
+		<style>
+			body { margin: 0; overflow: hidden;}
+		</style>
         
     </head>
     <body>
@@ -28,7 +30,60 @@
         <script type="text/javascript" src="js/profiler.js"></script>
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
 		<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+		<script src="solvepnp/lib/math.js"></script>
+		<script src="solvepnp/lib/quartic.js"></script>
+		<script src="solvepnp/solvepnp.js"></script>
+		<script src="solvepnp/lib/gl-matrix-min.js"></script>
         <script type="text/javascript">
+		
+		function sendPose(ip){
+			var w = 0.1637;
+			var h = 0.2048;
+			var requestData = {
+				"imgpoints" : [],
+				"objpoints" : [[-w/2, h/2, 0],
+							   [w/2, h/2, 0],
+							   [w/2, -h/2, 0],
+							   [-w/2, -h/2, 0]]
+			};
+			
+			for(var i=0;i<4;i++){
+				requestData['imgpoints'].push([ip[i].x, ip[i].y]);
+			}
+			
+			requestData['fx'] = 609.710537;
+			requestData['fy'] = 606.011374;
+			requestData['cx'] = 303.200522;
+			requestData['cy'] = 258.905227;
+			
+			var d1 = PnPSolver(requestData['fx'], requestData['fy'], requestData['cx'], requestData['cy']).solvePnP(requestData['objpoints'], requestData['imgpoints']);
+			/*
+			d1['rotation'] = [
+				[d1['rotation'][0], d1['rotation'][3], d1['rotation'][6]],
+				[d1['rotation'][1], d1['rotation'][4], d1['rotation'][7]],
+				[d1['rotation'][2], d1['rotation'][5], d1['rotation'][8]]
+			];
+
+			d1['translation'] = [
+				[d1['translation'][0]],
+				[d1['translation'][1]],
+				[d1['translation'][2]]
+			];
+			*/
+			var data = [d1['rotation'][0], d1['rotation'][3], d1['rotation'][6], d1['translation'][0],
+						d1['rotation'][1], d1['rotation'][4], d1['rotation'][7], d1['translation'][1],
+						d1['rotation'][2], d1['rotation'][5], d1['rotation'][8], d1['translation'][2],
+						0,0,0,1
+						];
+
+
+			var jsonObj = {};
+			jsonObj.Id = "OnARTargetFound";
+			jsonObj.Data = data;
+			var eventData = JSON.stringify(jsonObj);
+			var event = new CustomEvent('OnARFrameEvent', { detail: eventData });
+			window.parent.document.dispatchEvent(event);
+		}
 		
 		async function camInit(){
 			const constraints = {
@@ -312,18 +367,23 @@
                         stat.start("matching");
                         num_matches = match_pattern();
                         good_matches = find_transform(matches, num_matches);
+						
+						
+						
                         stat.stop("matching");
                     }
 
                     ctx.putImageData(imageData, 0, 0);
 
                     if(num_matches) {
-                        console.log("number of matches : ",num_matches, good_matches);
-                        if( good_matches >= num_matches * 30 / 100)
-                            console.log("matched");
+                        //console.log("number of matches : ",num_matches, good_matches);
+                        //if( good_matches >= num_matches * 30 / 100)
+                            //console.log("matched");
                         render_matches(ctx, matches, num_matches);
-                        if(good_matches > 8)
+                        if(good_matches > 8){
                             render_pattern_shape(ctx);
+						}
+						
                     }
 
                     $('#log').html(stat.log());
@@ -542,7 +602,9 @@
             function render_pattern_shape(ctx) {
                 // get the projected pattern corners
                 var shape_pts = tCorners(homo3x3.data, pattern_preview.cols*2, pattern_preview.rows*2);
-
+				
+				sendPose(shape_pts);
+				
                 ctx.strokeStyle = "rgb(0,255,0)";
                 ctx.beginPath();
 
