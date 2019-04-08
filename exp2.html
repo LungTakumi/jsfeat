@@ -8,7 +8,7 @@
         <meta name="author" content="Eugene Zatepyakin">
         <title>JSFeat - JavaScript Computer Vision Library.</title>
 
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Sans:regular,bold|Inconsolata|PT+Sans:400,700">
+        <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Sans:regular,bold|Inconsolata|PT+Sans:400,700"> -->
         <link rel="stylesheet" href="css/bootstrap.css">
         <link rel="stylesheet" href="css/jsfeat.css">
 		<style>
@@ -24,18 +24,19 @@
                 <div id="log" class="alert alert-info"></div>
             </div>
             <canvas id="myCanvas"  style="border:1px solid #d3d3d3;">
-        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+        <script type="text/javascript" src="js/jquery.min.js"></script>
         <script type="text/javascript" src="js/jsfeat-min.js"></script>
         <script type="text/javascript" src="js/compatibility.js"></script>
         <script type="text/javascript" src="js/profiler.js"></script>
         <script type="text/javascript" src="js/dat.gui.min.js"></script>
-		<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+		<script src="js/adapter-latest.js"></script>
 		<script src="solvepnp/lib/math.js"></script>
 		<script src="solvepnp/lib/quartic.js"></script>
 		<script src="solvepnp/solvepnp.js"></script>
-		<script src="solvepnp/lib/gl-matrix-min.js"></script>
+        <script src="solvepnp/lib/gl-matrix-min.js"></script>
+        <script src="kalman/kalman.min.js"></script>
         <script type="text/javascript">
-		
+		var kf = new KalmanFilter();
 		function sendPose(ip){
 			var w = 0.1637;
 			var h = 0.2048;
@@ -85,6 +86,15 @@
 			window.parent.document.dispatchEvent(event);
 		}
 		
+        function sendLost(){
+            var jsonObj = {};
+			jsonObj.Id = "OnARTargetLost";
+			jsonObj.Data = 0;
+			var eventData = JSON.stringify(jsonObj);
+			var event = new CustomEvent('OnARFrameEvent', { detail: eventData });
+			window.parent.document.dispatchEvent(event);
+        }
+
 		async function camInit(){
 			const constraints = {
 				audio: false,
@@ -193,9 +203,9 @@
             var num_train_levels = 4;
 
             var demo_opt = function(){
-                this.blur_size = 5;
+                this.blur_size = 0;
                 this.lap_thres = 30;
-                this.eigen_thres = 25;
+                this.eigen_thres = 100;
                 this.match_threshold = 48;
 
                 this.train_pattern = function() {
@@ -314,13 +324,13 @@
 
                 options = new demo_opt();
 				loadMarker();
-                gui = new dat.GUI();
+                //gui = new dat.GUI();
 
-                gui.add(options, "blur_size", 3, 9).step(1);
-                gui.add(options, "lap_thres", 1, 100);
-                gui.add(options, "eigen_thres", 1, 100);
-                gui.add(options, "match_threshold", 16, 128);
-                gui.add(options, "train_pattern");
+                //gui.add(options, "blur_size", 0, 9).step(1);
+                //gui.add(options, "lap_thres", 1, 100);
+                //gui.add(options, "eigen_thres", 1, 100);
+                //gui.add(options, "match_threshold", 16, 128);
+                //gui.add(options, "train_pattern");
 
                 stat.add("grayscale");
                 stat.add("gauss blur");
@@ -346,6 +356,7 @@
 
                     jsfeat.yape06.laplacian_threshold = options.lap_thres|0;
                     jsfeat.yape06.min_eigen_value_threshold = options.eigen_thres|0;
+                    //jsfeat.yape06.min_eigen_value_threshold = 100;
 
                     stat.start("keypoints");
                     num_corners = detect_keypoints(img_u8_smooth, screen_corners, 500);
@@ -381,8 +392,15 @@
                             //console.log("matched");
                         render_matches(ctx, matches, num_matches);
                         if(good_matches > 8){
-                            render_pattern_shape(ctx);
-						}
+                            // get the projected pattern corners
+                            var shape_pts = tCorners(homo3x3.data, pattern_preview.cols*2, pattern_preview.rows*2);
+                            sendPose(shape_pts);
+                            render_pattern_shape(ctx, shape_pts);
+                            //console.log("Found");
+						}else{
+                            //console.log("Lost");
+                            sendLost();
+                        }
 						
                     }
 
@@ -599,11 +617,8 @@
                 }
             }
 
-            function render_pattern_shape(ctx) {
-                // get the projected pattern corners
-                var shape_pts = tCorners(homo3x3.data, pattern_preview.cols*2, pattern_preview.rows*2);
-				
-				sendPose(shape_pts);
+            function render_pattern_shape(ctx, shape_pts) {
+                
 				
                 ctx.strokeStyle = "rgb(0,255,0)";
                 ctx.beginPath();

@@ -58,23 +58,30 @@
 				var obj = JSON.parse(e.detail);
 				//console.log("j Data: " + obj.Data);
 				
-				
-				var m = new THREE.Matrix4();
-				m.fromArray(obj.Data);
-				m.transpose();
-				//console.log("M: " + m.elements);
-				cube.position.set(m.elements[12], -m.elements[13], -m.elements[14]);
-				cube.setRotationFromMatrix(m);
-				//cube.rotation.x *= -1;
-				cube.rotation.y *= -1;
-				cube.rotation.z *= -1;
-				
-				var cpos = JSON.stringify(cube.position);
-				var crot = JSON.stringify(cube.rotation);
-				var cscale = JSON.stringify(cube.scale);
-				console.log("cpos: " + cpos);
-				console.log("crot: " + crot);
-				console.log("cscale: " + cscale);
+				if(obj.Id == "OnARTargetFound"){
+					console.log("OnARTargetFound");
+					var m = new THREE.Matrix4();
+					m.fromArray(obj.Data);
+					m.transpose();
+					//console.log("M: " + m.elements);
+
+					cube.visible = true;
+					cube.position.set(m.elements[12], -m.elements[13], -m.elements[14]);
+					cube.setRotationFromMatrix(m);
+					//cube.rotation.x *= -1;
+					cube.rotation.y *= -1;
+					cube.rotation.z *= -1;
+
+					var cpos = JSON.stringify(cube.position);
+					var crot = JSON.stringify(cube.rotation);
+					var cscale = JSON.stringify(cube.scale);
+					console.log("cpos: " + cpos);
+					console.log("crot: " + crot);
+					console.log("cscale: " + cscale);
+				}else if(obj.Id == "OnARTargetLost"){
+					console.log("OnARTargetLost");
+					cube.visible = false;
+				}
 				
 			}
 		</script>
